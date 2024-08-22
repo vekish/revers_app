@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Revers App</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='jquery.signature.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.css">
+    <style>
+        .kbw-signature { width: 100%; height: 200px; border: 2px solid #000000}
+        #sig canvas { width: 100% !important; height: auto; border: 1px solid #000000}
+        .container {
+            display: flex;
+            justify-content: space-between;
+        }
+        .section {
+            width: 45%;
+            padding-left: 10px; /* Ovo će pomoći da se polja poravnaju sa naslovima */
+        }
+        .row {
+            display: flex;
+            justify-content: flex-start; /* Poravnanje polja sa početkom sekcije */
+            align-items: center;
+            margin-bottom: 3px;
+        }
+        .row label, .row input, .row select {
+            flex: 1;
+            margin: 0 5px;
+        }
+        .row label {
+            width: 30%;
+            text-align: left; /* Poravnanje labela levo */
+        }
+        .row input, .row select {
+            width: 65%;
+        }
+        table {
+            width: 100%;
+            margin-top: 20px;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        .button-group {
+            display: flex;
+            justify-content: space-between;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Revers App</h1>
+    <a href="/clear_session">Nova sesija</a>
+
+    <!-- Date picker section -->
+    <div>
+        <h2>Datum</h2>
+        <input type="text" id="datepicker" name="date" value="{{ session['date'] }}" required>
+    </div>
+
+    <div class="container">
+        <div class="section">
+            <h2>Komercijalista</h2>
+            <form id="employee_form" method="POST">
+                {{ employee_form.hidden_tag() }}
+                <div class="row">
+                    {{ employee_form.code.label }} {{ employee_form.code(id='employee_code') }}<br>
+                </div>
+                <div class="row">
+                    {{ employee_form.name.label }} {{ employee_form.name(id='employee_name') }}<br>
+                </div>
+                <div class="row">
+                    {{ employee_form.email.label }} {{ employee_form.email(id='employee_email') }}<br>
+                </div>
+            </form>
+        </div>
+        <div class="section">
+            <h2>Kupac</h2>
+            <form id="customer_form" method="POST">
+                {{ customer_form.hidden_tag() }}
+                <div class="row">
+                    {{ customer_form.code.label }} {{ customer_form.code(id='customer_code') }}<br>
+                </div>
+                <div class="row">
+                    {{ customer_form.name.label }} {{ customer_form.name(id='customer_name') }}<br>
+                </div>
+                <div class="row">
+                    {{ customer_form.pib.label }} {{ customer_form.pib(id='customer_pib') }}<br>
+                </div>
+                <div class="row">
+                    {{ customer_form.email.label }} {{ customer_form.email(id='customer_email') }}<br>
+                </div>
+                <div class="row">
+                    {{ customer_form.division.label }} {{ customer_form.division(id='customer_division') }}<br>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div>
+        <h2>Artikli</h2>
+        <form id="item_form" method="POST">
+            {{ item_form.hidden_tag() }}
+            {{ item_form.item.label }} {{ item_form.item(id='item_code') }}<br>
+            {{ item_form.quantity.label }} {{ item_form.quantity(id='item_quantity') }}<br>
+            <button type="submit" name="add_item">Dodaj Artikal</button>
+        </form>
+
+        {% if selected_items %}
+            <table>
+                <thead>
+                    <tr>
+                        <th>Redni broj</th>
+                        <th>Šifra artikla</th>
+                        <th>Količina</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for item in selected_items %}
+                        <tr>
+                            <td>{{ loop.index }}</td>
+                            <td>{{ item['code'] }}</td>
+                            <td>{{ item['quantity'] }}</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% endif %}
+    </div>
+
+    <div>
+        <h2>Potpis</h2>
+        <div id="sig"></div>
+        <textarea id="signature64" name="signed" style="display: none"></textarea>
+        <div class="button-group">
+            <button id="clear">Resetuj</button>
+            <button type="button" id="save">Sačuvaj potpis</button>
+            <form method="POST" action="/generate_pdf">
+                <input type="hidden" name="employee_code" id="hidden_employee_code">
+                <input type="hidden" name="employee_name" id="hidden_employee_name">
+                <input type="hidden" name="employee_email" id="hidden_employee_email">
+                <input type="hidden" name="customer_code" id="hidden_customer_code">
+                <input type="hidden" name="customer_name" id="hidden_customer_name">
+                <input type="hidden" name="customer_pib" id="hidden_customer_pib">
+                <input type="hidden" name="customer_email" id="hidden_customer_email">
+                <input type="hidden" name="customer_division" id="hidden_customer_division">
+                <input type="hidden" name="date" id="hidden_date">
+                <button type="submit" name="generate_pdf">Generiši PDF</button>
+            </form>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js"></script>
+    <script src="{{ url_for('static', filename='jquery.signature.min.js') }}"></script>
+    <script>
+        $(document).ready(function() {
+            $('#datepicker').datepicker({
+                dateFormat: 'dd.mm.yy'
+            });
+
+            var sig = $('#sig').signature({syncField: '#signature64', syncFormat: 'PNG'});
+            $('#clear').click(function(e) {
+                e.preventDefault();
+                sig.signature('clear');
+                $('#signature64').val('');
+            });
+
+            $('#save').click(function() {
+                $.ajax({
+                    url: '/save_signature',
+                    type: 'POST',
+                    data: {signed: $('#signature64').val()},
+                    success: function(response) {
+                        alert('Potpis je uspešno sačuvan');
+                    }
+                });
+            });
+
+            $('form[action="/generate_pdf"]').on('submit', function() {
+                var dateValue = $('#datepicker').val();
+                $('#hidden_date').val(dateValue);
+            });
+
+            $('#employee_code').on('focus', function() {
+                var dropdown = $(this);
+                if (dropdown.find('option').length === 1) {
+                    $.ajax({
+                        url: '/get_employees',
+                        type: 'GET',
+                        success: function(data) {
+                            dropdown.empty();
+                            dropdown.append('<option value="">Odaberite šifru</option>');
+                            $.each(data, function(key, value) {
+                                dropdown.append('<option value="' + key + '">' + key + ' - ' + value + '</option>');
+                            });
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Greška prilikom učitavanja zaposlenih: ", status, error);
+                        }
+                    });
+                }
+            });
+
+            $('#employee_code').on('change', function() {
+                var code = $(this).val();
+                if (code) {
+                    $.ajax({
+                        url: '/get_employee/' + code,
+                        type: 'GET',
+                        success: function(data) {
+                            $('#employee_name').val(data.name);
+                            $('#employee_email').val(data.email);
+                            $('#hidden_employee_code').val(code);
+                            $('#hidden_employee_name').val(data.name);
+                            $('#hidden_employee_email').val(data.email);
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Greška prilikom učitavanja podataka zaposlenog: ", status, error);
+                        }
+                    });
+                }
+            });
+
+            $('#customer_code').on('focus', function() {
+                var dropdown = $(this);
+                if (dropdown.find('option').length === 1) {
+                    $.ajax({
+                        url: '/get_customers',
+                        type: 'GET',
+                        success: function(data) {
+                            dropdown.empty();
+                            dropdown.append('<option value="">Odaberite šifru</option>');
+                            $.each(data, function(key, value) {
+                                dropdown.append('<option value="' + key + '">' + key + ' - ' + value + '</option>');
+                            });
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Greška prilikom učitavanja kupaca: ", status, error);
+                        }
+                    });
+                }
+            });
+
+            $('#customer_code').on('change', function() {
+                var code = $(this).val();
+                if (code) {
+                    $.ajax({
+                        url: '/get_customer/' + code,
+                        type: 'GET',
+                        success: function(data) {
+                            $('#customer_name').val(data.name);
+                            $('#customer_pib').val(data.pib);
+                            $('#customer_email').val(data.email);
+                            $('#customer_division').val(data.division);
+                            $('#hidden_customer_code').val(code);
+                            $('#hidden_customer_name').val(data.name);
+                            $('#hidden_customer_pib').val(data.pib);
+                            $('#hidden_customer_email').val(data.email);
+                            $('#hidden_customer_division').val(data.division);
+                        },
+                        error: function(xhr, status, error) {
+                            console.error("Greška prilikom učitavanja podataka kupca: ", status, error);
+                        }
+                    });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
