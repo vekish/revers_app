@@ -4,5 +4,6 @@ Flask-SQLAlchemy==3.0.3
 Gunicorn==20.1.0
 pdfkit==1.0.0
 WTForms==3.0.1
+Werkzeug==2.3.7
 # Ukloni komentar ispod ako koristiš MySQL
 # PyMySQL==1.0.2
