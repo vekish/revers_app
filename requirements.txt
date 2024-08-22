@@ -1,1 +1,8 @@
-wheel @ file:///opt/homebrew/Cellar/python%403.12/3.12.4/libexec/wheel-0.43.0-py3-none-any.whl#sha256=ff23205a590f2b902a2a21151019e96b93ab4a1409d7c9748b6bd210f4c0f44d
+Flask==2.3.2
+Flask-WTF==1.1.1
+Flask-SQLAlchemy==3.0.3
+Gunicorn==20.1.0
+pdfkit==1.0.0
+WTForms==3.0.1
+# Ukloni komentar ispod ako koristiš MySQL
+# PyMySQL==1.0.2
